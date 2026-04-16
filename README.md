@@ -184,13 +184,3 @@ DELETE http://localhost:8080/customers/{id}
 ```
 
 ---
-
-# Kết luận
-
-Kiến trúc của project hướng tới việc:
-
-* Tách biệt rõ ràng các tầng
-* Giảm phụ thuộc giữa các module
-* Dễ bảo trì và mở rộng
-
-Phù hợp với các hệ thống backend có quy mô vừa và lớn.
