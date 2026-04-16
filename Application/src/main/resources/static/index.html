@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .main-card { border-radius: 15px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .btn-primary { background-color: #4e73df; border: none; }
+        .table thead { background-color: #f8f9fc; }
+    </style>
+</head>
+<body>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="text-gray-800 fw-bold"><i class="fas fa-user-tie text-primary me-2"></i>Quản Lý Khách Hàng</h2>
+                <button onclick="loadCustomers()" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-sync"></i> Tải lại trang
+                </button>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card main-card p-4">
+                        <h5 class="mb-3 fw-bold">Thêm mới</h5>
+                        <div class="mb-3">
+                            <label class="form-label text-muted small">Tên khách hàng</label>
+                            <input type="text" id="name" class="form-control" placeholder="VD: Nguyễn Văn A">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted small">Công việc</label>
+                            <input type="text" id="job" class="form-control" placeholder="VD: Developer">
+                        </div>
+                        <button onclick="addCustomer()" class="btn btn-primary w-100 fw-bold py-2">
+                            Lưu Thông Tin
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-md-8">
+                    <div class="card main-card">
+                        <div class="table-responsive p-3">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                <tr>
+                                    <th class="text-muted small">ID (Rút gọn)</th>
+                                    <th class="text-muted small">HỌ TÊN</th>
+                                    <th class="text-muted small">CÔNG VIỆC</th>
+                                    <th class="text-end text-muted small">HÀNH ĐỘNG</th>
+                                </tr>
+                                </thead>
+                                <tbody id="list">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="customerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title">Chi tiết khách hàng</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div id="modalContent" class="modal-body">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Đảm bảo khớp với @RestController path
+    const API_URL = "customers";
+
+    // 1. Load danh sách (GET customers)
+    function loadCustomers() {
+        fetch(API_URL)
+            .then(res => res.json())
+            .then(data => {
+                let html = "";
+                data.forEach(c => {
+                    // CỰC KỲ QUAN TRỌNG: ID là UUID nên khi truyền vào function phải bọc trong dấu nháy đơn '${c.id}'
+                    html += `
+                    <tr>
+                        <td><code class="small text-primary">${c.id.substring(0, 8)}...</code></td>
+                        <td><strong>${c.name}</strong></td>
+                        <td><span class="badge bg-light text-dark">${c.job}</span></td>
+                        <td class="text-end">
+                            <button onclick="viewCustomer('${c.id}')" class="btn btn-sm btn-light border me-1"><i class="fas fa-eye"></i></button>
+                            <button onclick="deleteCustomer('${c.id}')" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+                });
+                document.getElementById("list").innerHTML = html || '<tr><td colspan="4" class="text-center py-4">Chưa có khách hàng nào</td></tr>';
+            })
+            .catch(err => console.error("Lỗi khi fetch:", err));
+    }
+
+    // 2. Thêm mới (POST customers?name=...&job=...)
+    function addCustomer() {
+        const name = document.getElementById("name").value;
+        const job = document.getElementById("job").value;
+
+        if (!name || !job) return alert("Vui lòng nhập đầy đủ thông tin!");
+
+        // Khớp với @RequestParam trong Java
+        const params = new URLSearchParams({ name: name, job: job });
+
+        fetch(`${API_URL}?${params.toString()}`, {
+            method: "POST"
+        })
+            .then(res => {
+                if (res.ok) {
+                    document.getElementById("name").value = "";
+                    document.getElementById("job").value = "";
+                    loadCustomers(); // Cập nhật lại danh sách
+                } else {
+                    alert("Không thể lưu. Lỗi server: " + res.status);
+                }
+            })
+            .catch(err => alert("Lỗi kết nối: " + err));
+    }
+
+    // 3. Xóa (DELETE customers/{id})
+    function deleteCustomer(id) {
+        if (confirm("Bạn có chắc muốn xóa khách hàng này?")) {
+            fetch(`${API_URL}/${id}`, { method: "DELETE" })
+                .then(res => {
+                    if (res.ok) loadCustomers();
+                    else alert("Xóa thất bại!");
+                });
+        }
+    }
+
+    // 4. Xem chi tiết (GET customers/{id})
+    function viewCustomer(id) {
+        fetch(`${API_URL}/${id}`)
+            .then(res => res.json())
+            .then(c => {
+                document.getElementById("modalContent").innerHTML = `
+                    <div class="p-2">
+                        <p class="mb-1 text-muted small">Mã định danh (UUID):</p>
+                        <p class="fw-bold text-primary mb-3">${c.id}</p>
+                        <p class="mb-1 text-muted small">Họ và tên:</p>
+                        <p class="fw-bold mb-3">${c.name}</p>
+                        <p class="mb-1 text-muted small">Nghề nghiệp:</p>
+                        <p class="fw-bold mb-0">${c.job}</p>
+                    </div>
+                `;
+                new bootstrap.Modal(document.getElementById('customerModal')).show();
+            });
+    }
+
+    // Khởi tạo lần đầu
+    loadCustomers();
+</script>
+
+</body>
+</html>
